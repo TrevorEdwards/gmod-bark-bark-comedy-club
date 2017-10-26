@@ -1,0 +1,7 @@
+"bbcc"
+{
+	"base"		"base"
+	"title"		"BARK BARK COMEDY CLUB"
+	"maps"		"^bbcc_"
+	"menusystem"	"1"
+}

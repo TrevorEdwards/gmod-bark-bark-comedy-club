@@ -1,8 +1,8 @@
-GM.Name = "Funny Game"
-GM.Author = "TB002"
-GM.Email = "N/A"
-GM.Website = "rkszone.com"
+GM.Name = "BARK BARK COMEDY CLUB"
+GM.Author = "TrevorEdwards (GitHub)"
+GM.Email = ""
+GM.Website = ""
 
 function GM:Initialize()
-    -- Do stuff
+    -- bbcc
 end

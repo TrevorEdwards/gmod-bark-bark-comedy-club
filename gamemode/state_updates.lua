@@ -23,26 +23,39 @@ if STATE_UPDATES == nil then
             end
         elseif GAMEMODE.state == GAME_STATE.PREPARING_FOR_NEXT_ROUND then
             if GAMEMODE.previousState ~= GAMEMODE.state then
-                UTIL.printAnnounce("Starting next round in " .. CONSTANTS.WAITING_FOR_NEXT_ROUND_SECONDS .. " seconds.")
                 reset()
             end
 
             if player.GetCount() < CONSTANTS.MIN_PLAYERS then
                 setGameState(GAME_STATE.WAITING_FOR_PLAYERS)
             elseif CurTime() > GAMEMODE.stateTimestamp + CONSTANTS.WAITING_FOR_NEXT_ROUND_SECONDS then
-                setGameState(GAME_STATE.TELLING_JOKES)
+                -- assign comedian
+                byStage = ents.FindInSphere(Vector(-79.544716, -38.720398, 71.031250), 160)
+                players = {}
+                for _, ent in pairs(byStage) do
+                    if ent:IsPlayer() then
+                        table.insert(players, ent)
+                    end
+                end
+                table.RemoveByValue(players, GAMEMODE.lastComedian)
+                if table.Count(players) > 0 then
+                    GAMEMODE.comedian = table.Random(players)
+                    PrintMessage(4, GAMEMODE.comedian:Nick() .. " is the comedian!")
+                    GAMEMODE.comedian:SetPos( CONSTANTS.POS_COMEDIAN )
+                    GAMEMODE.comedyTime = CONSTANTS.COMEDY_SECONDS
+                    setupPlayersForComedy()
+                    GAMEMODE.comedian:SetModel("models/player/barney.mdl")
+                    net.Start("comedian")
+                    net.WriteString(GAMEMODE.comedian:Nick())
+                    net.Broadcast()
+                    setGameState(GAME_STATE.TELLING_JOKES)
+                end
             end
         elseif GAMEMODE.state == GAME_STATE.TELLING_JOKES then
             if GAMEMODE.previousState ~= GAMEMODE.state then
-                UTIL.printAnnounce("telling jokes")
-                -- assign comedian
-                GAMEMODE.comedian = table.Random(player.GetAll())
-                PrintMessage(4, GAMEMODE.comedian:Nick() .. " is the comedian!")
-                GAMEMODE.comedian:PrintMessage(3, "lol im the comedian :P")
-                GAMEMODE.comedian:SetPos( CONSTANTS.POS_COMEDIAN )
             end
 
-            if CurTime() > GAMEMODE.stateTimestamp + CONSTANTS.COMEDY_SECONDS or GAMEMODE.comedianQuit then
+            if CurTime() > GAMEMODE.stateTimestamp + GAMEMODE.comedyTime or GAMEMODE.comedianQuit then
                 setGameState(GAME_STATE.PREPARING_FOR_NEXT_ROUND)
                 if GAMEMODE.comedianQuit then
                     PrintMessage(4, GAMEMODE.comedian:Nick() .. " left the stage.")
@@ -65,10 +78,20 @@ if STATE_UPDATES == nil then
 end
 
 function reset()
+    GAMEMODE.lastComedian = GAMEMODE.comedian
     GAMEMODE.comedian = nil
     GAMEMODE.comedianQuit = false
     GAMEMODE.boos = 0
     GAMEMODE.cheers = 0
+end
+
+function setupPlayersForComedy()
+    for _, ply in pairs(player.GetAll()) do
+        if IsValid(ply) then
+            ply.lastNoised = 0
+            ply:SetModel("models/player/Group01/Male_01.mdl")
+        end
+    end
 end
 
 function setGameState(state)
@@ -76,6 +99,7 @@ function setGameState(state)
         GAMEMODE.state = state
         net.Start("game_state")
         net.WriteInt(state, 16)
+        net.WriteInt(GAMEMODE.stateTimestamp, 32)
         net.Broadcast()
     end
 end
